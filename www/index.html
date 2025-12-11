@@ -165,7 +165,7 @@ function createPostElement(post) {
     // 編集権限を確認
     const canEdit = canEditPost(post);
     // 編集権限があれば、編集・削除機能を表示
-    const actions = !canEdit ? `
+    const actions = canEdit ? `
         <div class="post-actions">
             <button class="btn-edit" onclick="startEdit('${post.id}')">
                 編集
