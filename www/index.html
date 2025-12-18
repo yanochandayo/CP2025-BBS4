@@ -124,6 +124,8 @@ function createPost(author, content) {
     const button = $('#postButton');
     button.prop('disabled', true);
 
+    const displayName = currentUser.displayName || currentUser.email;
+
     // author はログインしているユーザのメールアドレスに変更、userId を追加
     const postData = {
         author: currentUser.email,
