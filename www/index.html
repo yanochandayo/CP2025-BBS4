@@ -103,6 +103,15 @@ if (isRegister && (!displayName || !displayName.trim())) {
 
 
 
+if (isRegister && displayName.length > 8) {
+        showMessage('ニックネームは8文字以内で入力してください', 'error');
+        return false;
+    }
+    return true;
+}
+
+
+
 // 投稿処理
 function createPost(author, content) {
     if (!currentUser) {
