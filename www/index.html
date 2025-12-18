@@ -96,6 +96,12 @@ function validateAuthInput(email, password,displayName=", isRegister = false) {
     }
     return true;
 }
+if (isRegister && (!displayName || !displayName.trim())) {
+        showMessage('ニックネームを入力してください', 'error');
+        return false;
+}
+
+
 
 // 投稿処理
 function createPost(author, content) {
