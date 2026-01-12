@@ -123,12 +123,16 @@ function createPost(author, content) {
 
     const button = $('#postButton');
     button.prop('disabled', true);
-
     const displayName = currentUser.displayName || currentUser.email;
+
+
+
+    
 
     // author はログインしているユーザのメールアドレスに変更、userId を追加
     const postData = {
         author: currentUser.email,
+        authorDisplayName: displayName,
         content: content,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         userId: currentUser.uid
@@ -192,6 +196,8 @@ function createPostElement(post) {
             </button>
         </div>
     ` : '';
+    const displayName = post.authorDisplayName || post.author || '匿名';
+ 
 
     return `
         <div class="post" id="post-${post.id}">
