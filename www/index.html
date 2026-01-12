@@ -93,8 +93,8 @@ function validateAuthInput(email, password,displayName=", isRegister = false) {
     if (isRegister && password.length < 6) {
         showMessage('パスワードは6文字以上にしてください', 'error');
         return false;
-    }
-    return true;
+    
+    
 }
 if (isRegister && (!displayName || !displayName.trim())) {
         showMessage('ニックネームを入力してください', 'error');
@@ -197,27 +197,14 @@ function createPostElement(post) {
         </div>
     ` : '';
     const displayName = post.authorDisplayName || post.author || '匿名';
- 
-
     return `
         <div class="post" id="post-${post.id}">
             <div class="post-header">
                 <span class="post-author">${escapeHtml(post.author)}</span>
                 <!-- 編集権限があれば、編集・削除機能を表示 -->
                 ${actions}
-            </div>
-            <div class="post-content">${escapeHtml(post.content)}</div>
-            <div class="edit-form">
-                <textarea class="form-control" id="edit-${post.id}"></textarea>
-                <div class="button-group">
-                    <button class="btn-primary" onclick="updatePost('${post.id}')">
-                        更新
-                    </button>
-                    <button class="btn-cancel" onclick="cancelEdit('${post.id}')">
-                        キャンセル
-                    </button>
                 </div>
-            </div>
+                <div class="post-content">${escapeHtml(post.content)}</div>
             <div class="post-footer">
                 <span class="post-time">
                     ${formatTimestamp(post.timestamp)}
@@ -339,7 +326,7 @@ function handleDelete() {
 }
 
 // モーダルの外側をクリックした時の処理
-$(document).on('click', '.modal-overlay', () => {
+$(document).on('click', '.modal-overlay', function() => {
     const modalId = $(this).parent().attr('id');
     closeModal(modalId);
 });
@@ -347,8 +334,8 @@ $(document).on('click', '.modal-overlay', () => {
 // ESCキーでモーダルを閉じる
 $(document).on('keydown', (e) => {
     if (e.key === 'Escape') {
-        $('.modal:visible').each(() => {
-            closeModal(this.id);
+        $('.modal:visible').each(function() {
+            closeModal($(this).attr('id'));
         });
     }
 });
@@ -429,13 +416,18 @@ function login(email, password) {
 }
 
 // 新規登録処理
-function register(email, password) {
-    if (!validateAuthInput(email, password, true)) return;
+function register(email, password, displayName) {
+    if (!validateAuthInput(email, password, displayName, true)) return;
 
     const button = $('#registerButton');
     button.prop('disabled', true);
 
     firebase.auth().createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      return userCredential.user.updateProfile({
+            displayName: displayName
+       }); 
+    })
     .then(() => {
         showMessage('アカウントを作成しました');
         clearAuthForm();
