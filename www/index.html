@@ -57,7 +57,9 @@ function updateCharacterCount(inputId, counterId, maxLength) {
 
     input.on('input', () => {
         const length = input.val().length;
-        counter.text(`${length}/${maxLength}`);
+        const remaining = maxLength - length;
+        counter.text(`残り ${remaining} 文字`);
+
 
         if (length > maxLength) {
             counter.addClass('error');
@@ -379,7 +381,12 @@ function updatePost(postId) {
     });
 }
  
+// 投稿の削除
+function deletePost(postId) {
+    currentEditId = postId;
+    showModal('deleteModal');
 }
+ 
 // 更新時のアニメーション
 function animateUpdate(postId) {
     const post = $(`#post-${postId}`);
