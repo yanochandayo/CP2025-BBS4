@@ -81,7 +81,7 @@ function validateContent(content) {
 }
 
 // 認証フォームのバリデーション
-function validateAuthInput(email, password,displayName=", isRegister = false) {
+function validateAuthInput(email, password,displayName="", isRegister = false) {
     if (!email || !email.trim()) {
         showMessage('メールアドレスを入力してください', 'error');
         return false;
@@ -103,8 +103,8 @@ if (isRegister && (!displayName || !displayName.trim())) {
 
 
 
-if (isRegister && displayName.length > 8) {
-        showMessage('ニックネームは8文字以内で入力してください', 'error');
+if (isRegister && displayName.length > 20) {
+        showMessage('ニックネームは20文字以内で入力してください', 'error');
         return false;
     }
     return true;
@@ -118,18 +118,16 @@ function createPost(author, content) {
         showMessage('投稿するにはログインが必要です', 'error');
         return;
     }
-
+ 
     if (!validateContent(content)) return;
-
+ 
     const button = $('#postButton');
     button.prop('disabled', true);
+ 
+    // 表示名を取得（displayNameがあればそれ、なければメールアドレス）
     const displayName = currentUser.displayName || currentUser.email;
-
-
-
-    
-
-    // author はログインしているユーザのメールアドレスに変更、userId を追加
+   
+    // author はログインしているユーザのメールアドレス、authorDisplayName を追加
     const postData = {
         author: currentUser.email,
         authorDisplayName: displayName,
@@ -137,7 +135,7 @@ function createPost(author, content) {
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         userId: currentUser.uid
     };
-
+ 
     postsRef.push(postData)
     .then(() => {
         showMessage('投稿が完了しました！');
@@ -151,7 +149,7 @@ function createPost(author, content) {
         button.prop('disabled', false);
     });
 }
-
+ 
 // HTMLエスケープ処理
 function escapeHtml(str) {
     if (!str) return '';
@@ -162,7 +160,7 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
-
+ 
 // タイムスタンプのフォーマット
 function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
@@ -174,14 +172,13 @@ function formatTimestamp(timestamp) {
         minute: '2-digit'
     });
 }
-
+ 
 // 投稿の編集権限チェック
 function canEditPost(post) {
     return currentUser && post.userId === currentUser.uid;
 }
-
+ 
 // 投稿のHTML要素を生成
-// 　バグ入りなので要修正（編集・削除機能表示判定が誤っている）
 function createPostElement(post) {
     // 編集権限を確認
     const canEdit = canEditPost(post);
@@ -196,15 +193,17 @@ function createPostElement(post) {
             </button>
         </div>
     ` : '';
+ 
+    // 表示名を取得（authorDisplayNameがあればそれ、なければauthor）
     const displayName = post.authorDisplayName || post.author || '匿名';
+ 
     return `
         <div class="post" id="post-${post.id}">
             <div class="post-header">
-                <span class="post-author">${escapeHtml(post.author)}</span>
-                <!-- 編集権限があれば、編集・削除機能を表示 -->
+                <span class="post-author">${escapeHtml(displayName)}</span>
                 ${actions}
-                </div>
-                <div class="post-content">${escapeHtml(post.content)}</div>
+            </div>
+            <div class="post-content">${escapeHtml(post.content)}</div>
             <div class="post-footer">
                 <span class="post-time">
                     ${formatTimestamp(post.timestamp)}
@@ -218,33 +217,33 @@ function createPostElement(post) {
         </div>
     `;
 }
-
+ 
 // 投稿の表示処理
 function renderPosts(posts) {
     const postsDiv = $('#postsList');
     postsDiv.empty();
-
+ 
     if (posts.length === 0) {
         postsDiv.html('<p class="no-posts">投稿はありません</p>');
         return;
     }
-
+ 
     posts.forEach((post) => {
         postsDiv.append(createPostElement(post));
     });
 }
-
+ 
 // 投稿の読み込み
 function loadPosts() {
     const sortOrder = $('#sortOrder').val();
     $('#loadingSpinner').show();
-
+ 
     // 既存のリスナーを解除
     if (postsListener) {
         postsRef.off('value', postsListener);
         postsListener = null;
     }
-
+ 
     // リスナーを設定
     postsListener = postsRef.on('value', (snapshot) => {
         const posts = [];
@@ -254,14 +253,14 @@ function loadPosts() {
                 ...childSnapshot.val()
             });
         });
-
+ 
         // 並び順の適用
         if (sortOrder === 'newest') {
             posts.sort((a, b) => b.timestamp - a.timestamp);
         } else {
             posts.sort((a, b) => a.timestamp - b.timestamp);
         }
-
+ 
         renderPosts(posts);
         $('#loadingSpinner').hide();
     }, (error) => {
@@ -270,30 +269,30 @@ function loadPosts() {
         $('#loadingSpinner').hide();
     });
 }
-
+ 
 // モーダル関連の関数
 function showModal(modalId) {
     $(`#${modalId}`).fadeIn(200);
     $('body').addClass('modal-open');
 }
-
+ 
 function closeModal(modalId) {
     $(`#${modalId}`).fadeOut(200);
     $('body').removeClass('modal-open');
 }
-
+ 
 // 更新処理のハンドラ
 function handleUpdate() {
     if (!currentEditId) return;
-
+ 
     const content = $('#editContent').val();
     if (!validateContent(content)) return;
-
+ 
     const updates = {
         content: content,
         updatedAt: firebase.database.ServerValue.TIMESTAMP
     };
-
+ 
     postsRef.child(currentEditId).update(updates)
     .then(() => {
         showMessage('投稿を更新しました');
@@ -305,14 +304,14 @@ function handleUpdate() {
         showMessage('更新に失敗しました：' + error.message, 'error');
     });
 }
-
+ 
 // 削除処理のハンドラ
 function handleDelete() {
     if (!currentEditId) return;
-
+ 
     const postElement = $(`#post-${currentEditId}`);
     postElement.addClass('deleting');
-
+ 
     postsRef.child(currentEditId).remove()
     .then(() => {
         showMessage('投稿を削除しました');
@@ -324,13 +323,13 @@ function handleDelete() {
         postElement.removeClass('deleting');
     });
 }
-
+ 
 // モーダルの外側をクリックした時の処理
-$(document).on('click', '.modal-overlay', function() => {
+$(document).on('click', '.modal-overlay', function() {
     const modalId = $(this).parent().attr('id');
     closeModal(modalId);
 });
-
+ 
 // ESCキーでモーダルを閉じる
 $(document).on('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -339,36 +338,36 @@ $(document).on('keydown', (e) => {
         });
     }
 });
-
+ 
 // 編集の開始
 function startEdit(postId) {
     currentEditId = postId;
     const post = $(`#post-${postId}`);
     const content = post.find('.post-content').text();
-
+ 
     $('#editContent').val(content);
     updateCharacterCount('editContent', 'editContentCount', 1000);
     showModal('editModal');
 }
-
+ 
 // 編集のキャンセル
 function cancelEdit(postId) {
     const postElement = $(`#post-${postId}`);
     postElement.removeClass('editing');
     postElement.find('textarea').val('');
 }
-
+ 
 // 投稿の更新
 function updatePost(postId) {
     const contentVal = $(`#edit-${postId}`).val();
     if (!validateContent(contentVal)) return;
-
+ 
     // content の内容を変更し、updatedAt フィールドを付加して、更新後の投稿内容を生成
     const updates = {
         content: contentVal,
         updatedAt: firebase.database.ServerValue.TIMESTAMP
     };
-
+ 
     postsRef.child(postId).update(updates)
     .then(() => {
         showMessage('投稿を更新しました');
@@ -379,13 +378,13 @@ function updatePost(postId) {
         showMessage('更新に失敗しました：' + error.message, 'error');
     });
 }
-
+ 
 // 投稿の削除
 function deletePost(postId) {
     currentEditId = postId;
     showModal('deleteModal');
 }
-
+ 
 // 更新時のアニメーション
 function animateUpdate(postId) {
     const post = $(`#post-${postId}`);
@@ -394,14 +393,14 @@ function animateUpdate(postId) {
         post.removeClass('updated');
     }, 1000);
 }
-
+ 
 // ログイン処理
 function login(email, password) {
     if (!validateAuthInput(email, password)) return;
-
+ 
     const button = $('#loginButton');
     button.prop('disabled', true);
-
+ 
     firebase.auth().signInWithEmailAndPassword(email, password)
     .then(() => {
         showMessage('ログインしました');
@@ -414,19 +413,20 @@ function login(email, password) {
         button.prop('disabled', false);
     });
 }
-
+ 
 // 新規登録処理
 function register(email, password, displayName) {
     if (!validateAuthInput(email, password, displayName, true)) return;
-
+ 
     const button = $('#registerButton');
     button.prop('disabled', true);
-
+ 
     firebase.auth().createUserWithEmailAndPassword(email, password)
     .then((userCredential) => {
-      return userCredential.user.updateProfile({
+        // displayNameを設定
+        return userCredential.user.updateProfile({
             displayName: displayName
-       }); 
+        });
     })
     .then(() => {
         showMessage('アカウントを作成しました');
@@ -439,7 +439,7 @@ function register(email, password, displayName) {
         button.prop('disabled', false);
     });
 }
-
+ 
 // ログアウト処理
 function logout() {
     firebase.auth().signOut()
@@ -450,7 +450,7 @@ function logout() {
             showMessage('ログアウトに失敗しました', 'error');
         });
 }
-
+ 
 // 認証フォームのクリア
 function clearAuthForm() {
     $('#loginEmail').val('');
@@ -458,21 +458,22 @@ function clearAuthForm() {
     $('#displayNameInput').val('');
     $('#displayNameGroup').hide();
 }
-
+ 
 // UI更新
-// 　バグ入りなので要修正（emailアドレスを表示するべきところを uid を表示してしまっている）
 function updateUI(user) {
     if (user) {
         $('.logged-in').show();
         $('.logged-out').hide();
-        $('#userEmail').text(user.email);
+        // displayNameがあればそれ、なければメールアドレスを表示
+        const displayName = user.displayName || user.email;
+        $('#userEmail').text(displayName);
     } else {
         $('.logged-in').hide();
         $('.logged-out').show();
         $('#userEmail').text('');
     }
 }
-
+ 
 $(function() {
     // Firebaseの初期化
     try {
@@ -483,17 +484,17 @@ $(function() {
         console.error("Firebase initialization error:", error);
         showMessage('Firebaseの初期化に失敗しました', 'error');
     }
-
+ 
     // 認証状態の監視
     firebase.auth().onAuthStateChanged((user) => {
         currentUser = user;
         updateUI(user);
         loadPosts();
      });
-
+ 
     // 文字数カウンターの初期化
     updateCharacterCount('contentInput', 'contentCount', 1000);
-
+ 
     // 投稿処理
     $('#postButton').on('click', () => {
         // 投稿内容をフォームから取得
@@ -501,28 +502,38 @@ $(function() {
         const contentVal = $('#contentInput').val();
         createPost(authorVal, contentVal);
     });
-
+ 
     $('#loginButton').on('click', () => {
         const email = $('#loginEmail').val();
         const password = $('#loginPassword').val();
         login(email, password);
     });
-
-    $('#registerButton').on('click', () => {
+ 
+    // 新規登録ボタンでニックネーム入力欄を表示してから登録処理
+    $('#registerButton').on('click', (e) => {
+        e.preventDefault();
+        // ニックネーム入力欄を表示
+        $('#displayNameGroup').show();
         const email = $('#loginEmail').val();
         const password = $('#loginPassword').val();
-        register(email, password);
+        const displayName = $('#displayNameInput').val();
+        register(email, password, displayName);
     });
-
+ 
+    // ログインボタンでニックネーム入力欄を非表示
+    $('#loginButton').on('click', () => {
+        $('#displayNameGroup').hide();
+    });
+ 
     $('#logoutButton').on('click', logout);
-
+ 
     // 投稿一覧表示順序選択
     $('#sortOrder').on('change', loadPosts);
-
+ 
     // 投稿一覧の初期読み込み
     loadPosts();
 });
-
+ 
 // クリーンアップ処理
 window.addEventListener('unload', () => {
     if (postsListener) {
@@ -535,10 +546,10 @@ window.addEventListener('unload', () => {
 <body>
     <div class="container">
         <h1>掲示板アプリ</h1>
-
+ 
         <!-- メッセージ表示エリア -->
         <div id="messageArea"></div>
-
+ 
         <!-- 認証フォーム（未ログイン時表示） -->
         <div class="auth-container logged-out">
             <div class="form-group">
@@ -552,18 +563,24 @@ window.addEventListener('unload', () => {
                        class="form-control" placeholder="6文字以上">
                 <small class="help-text">※新規登録時は6文字以上</small>
             </div>
+            <div class="form-group" id="displayNameGroup" style="display: none;">
+                <label for="displayNameInput">ニックネーム</label>
+                <input type="text" id="displayNameInput"
+                       class="form-control" placeholder="ニックネームを入力してください" maxlength="20">
+                <small class="help-text">※投稿時に表示される名前です（20文字以内）</small>
+            </div>
             <div class="button-group">
                 <button id="loginButton" class="btn-primary">ログイン</button>
                 <button id="registerButton" class="btn-secondary">新規登録</button>
             </div>
         </div>
-
+ 
         <!-- ログイン情報（ログイン時表示） -->
         <div class="user-info logged-in">
             <span>ログイン中：<span id="userEmail"></span></span>
             <button id="logoutButton" class="btn-secondary">ログアウト</button>
         </div>
-
+ 
         <!-- 投稿フォーム（ログイン時表示） -->
         <div class="post-form logged-in">
             <div class="form-group">
@@ -576,7 +593,7 @@ window.addEventListener('unload', () => {
                 <button id="postButton" class="btn-primary">投稿する</button>
             </div>
         </div>
-
+ 
         <!-- 投稿一覧 -->
         <div class="posts-container">
             <h2>投稿一覧</h2>
@@ -593,9 +610,9 @@ window.addEventListener('unload', () => {
             </div>
         </div>
     </div>
-
+ 
     <!-- 編集モーダルウィンドウ -->
-    <div id="editModal" class="modal">
+    <div id="editModal" class="modal" style="display: none;">
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
@@ -614,9 +631,9 @@ window.addEventListener('unload', () => {
             </div>
         </div>
     </div>
-
+ 
     <!-- 削除確認モーダルウィンドウ -->
-    <div id="deleteModal" class="modal">
+    <div id="deleteModal" class="modal" style="display: none;">
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
