@@ -379,12 +379,7 @@ function updatePost(postId) {
     });
 }
  
-// 投稿の削除
-function deletePost(postId) {
-    currentEditId = postId;
-    showModal('deleteModal');
 }
- 
 // 更新時のアニメーション
 function animateUpdate(postId) {
     const post = $(`#post-${postId}`);
